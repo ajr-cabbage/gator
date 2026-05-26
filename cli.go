@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ajr-cabbage/gator/internal/config"
+	"github.com/ajr-cabbage/gator/internal/database"
+	"github.com/google/uuid"
 )
 
 type state struct {
 	conf *config.Config
+	db   *database.Queries
 }
 
 type command struct {
@@ -43,12 +48,36 @@ func handlerLogin(s *state, cmd command) error {
 		return errors.New("Error: A username is required")
 	}
 
-	err := s.conf.SetUser(cmd.args[0])
+	_, err := s.db.GetUser(context.Background(), cmd.args[0])
+	if err != nil {
+		return errors.New("Error: Username not found")
+	}
+
+	err = s.conf.SetUser(cmd.args[0])
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("User has been set to '%s'\n", cmd.args[0])
 
+	return nil
+}
+
+func handlerRegister(s *state, cmd command) error {
+	if len(cmd.args) == 0 {
+		return errors.New("Error: A name is required")
+	}
+	newUserParams := database.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
+	}
+	_, err := s.db.CreateUser(context.Background(), newUserParams)
+	if err != nil {
+		return err
+	}
+	s.conf.SetUser(cmd.args[0])
+	fmt.Printf("New user '%s' created\n", s.conf.CurrentUserName)
 	return nil
 }
