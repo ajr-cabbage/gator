@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/ajr-cabbage/gator/internal/config"
@@ -23,6 +25,32 @@ type command struct {
 
 type commands struct {
 	cmdFuncs map[string]func(*state, command) error
+}
+
+func getCommands() *commands {
+	// initialize commands{} and underlying map
+	cmds := new(commands)
+	cmdMap := make(map[string]func(*state, command) error)
+	cmds.cmdFuncs = cmdMap
+	// register commands
+	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+
+	return cmds
+}
+
+func buildCommand() command {
+	// get CLI arguments
+	cliArgs := os.Args
+	if len(cliArgs) < 2 {
+		log.Fatal("No command given")
+	}
+	// set cmd name and args
+	cmd := command{
+		name: cliArgs[1],
+		args: cliArgs[2:],
+	}
+	return cmd
 }
 
 func (c *commands) run(s *state, cmd command) error {

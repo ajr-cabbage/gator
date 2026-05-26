@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"log"
-	"os"
 
 	"github.com/ajr-cabbage/gator/internal/config"
 	"github.com/ajr-cabbage/gator/internal/database"
@@ -22,25 +21,10 @@ func main() {
 	// store config in state{}
 	s := &state{conf: c, db: dbQueries}
 	// initialize commands
-	cmds := new(commands)
-	cmdMap := make(map[string]func(*state, command) error)
-	cmds.cmdFuncs = cmdMap
-	// register commands
-	cmds.register("login", handlerLogin)
-	cmds.register("register", handlerRegister)
-	// get CLI arguments
-	cliArgs := os.Args
-	if len(cliArgs) < 2 {
-		log.Fatal("No command given.")
-	}
-	//set cmd name and args
-	cmdName := cliArgs[1]
-	cmdArgs := cliArgs[2:]
-	cmd := command{
-		name: cmdName,
-		args: cmdArgs,
-	}
-
+	cmds := getCommands()
+	// build command from os.Args
+	cmd := buildCommand()
+	// run retrieved command
 	err = cmds.run(s, cmd)
 	if err != nil {
 		log.Fatal(err)
